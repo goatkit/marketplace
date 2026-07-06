@@ -19,20 +19,23 @@ gk update
 
 ### Signature Verification
 
-Plugins can be signed with ed25519 keys. Verification is **optional** by default:
+Plugins can be signed with ed25519 keys. When a plugin entry includes a `public_key` field, `gk install` verifies the download automatically — no user configuration needed.
+
+To enforce signatures for all installs (reject unsigned plugins):
 
 ```bash
-# Require signatures for all installs (fail if unsigned)
 export GOATFLOW_REQUIRE_SIGNATURES=1
-
-# Trust a specific public key (hex, comma-separated for multiple)
-export GOATFLOW_TRUSTED_KEYS=ae945462fc77f7bbb76af27875270bd5739d3f84a67b253a16e75d3ef2c4af0a
-
-# Or load keys from a file (one per line, # for comments)
-export GOATFLOW_TRUSTED_KEYS_FILE=/etc/goatflow/trusted_keys.txt
 ```
 
-Without trusted keys configured, signed plugins are extracted without verification (a warning is printed). With `GOATFLOW_REQUIRE_SIGNATURES=1`, unsigned plugins are rejected.
+To trust additional keys beyond those in the index (e.g. for private plugins):
+
+```bash
+# Hex public key, comma-separated for multiple
+export GOATFLOW_TRUSTED_KEYS=<64-char-hex-public-key>
+
+# Or load from a file (one per line, # for comments)
+export GOATFLOW_TRUSTED_KEYS_FILE=/etc/goatflow/trusted_keys.txt
+```
 
 ### Custom Marketplace
 
@@ -130,12 +133,13 @@ Open a pull request adding your plugin to [`marketplace.json`](marketplace.json)
   "latest_version": "1.0.0",
   "min_host_version": "0.8.0",
   "runtime": "wasm",
-  "verified": false,
-  "dependencies": []
+  "verified": true,
+  "dependencies": [],
+  "public_key": "<your-64-char-hex-public-key-from-make-keygen>"
 }
 ```
 
-Set `"verified": true` only if you have published a public key and signed your release.
+Set `"verified": true` and include `"public_key"` when you have signed your release. Users with `GOATFLOW_REQUIRE_SIGNATURES=1` will reject entries without a valid key.
 
 ## Index Schema
 
@@ -154,6 +158,7 @@ Set `"verified": true` only if you have published a public key and signed your r
 | `runtime` | string | yes | One of: `wasm`, `grpc`, `template`, `theme` |
 | `verified` | bool | yes | Whether the release is ed25519-signed |
 | `dependencies` | string[] | no | Plugin names this depends on (installed first) |
+| `public_key` | string | no | Ed25519 public key (hex, 64 chars) for automatic signature verification |
 
 ### Categories
 

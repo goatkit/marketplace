@@ -14,8 +14,9 @@
       "latest_version": "0.1.0",
       "min_host_version": "0.8.0",
       "runtime": "grpc",
-      "verified": false,
-      "dependencies": []
+      "verified": true,
+      "dependencies": [],
+      "public_key": "fa81e60073ee6f3e5825c575c18a7c2556f2abf2640dcf0e296a98fe4eb60fa6"
     }
   ]
 }
