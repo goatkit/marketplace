@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "updated_at": "2026-07-06T14:45:00Z",
+  "plugins": [
+    {
+      "name": "goat-kb",
+      "description": "Knowledge Base plugin with zinc search, OTRS FAQ import, and multi-tenant RBAC",
+      "author": "GoatKit Team",
+      "licence": "Apache-2.0",
+      "homepage": "https://github.com/goatkit/goat-kb",
+      "repo": "goatkit/goat-kb",
+      "category": "business",
+      "tags": ["knowledge-base", "faq", "articles", "customer-portal"],
+      "latest_version": "0.1.0",
+      "min_host_version": "0.8.0",
+      "runtime": "grpc",
+      "verified": false,
+      "dependencies": []
+    }
+  ]
+}
