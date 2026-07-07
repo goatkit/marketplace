@@ -9,6 +9,7 @@
       "licence": "Apache-2.0",
       "homepage": "https://github.com/goatkit/goat-kb",
       "repo": "goatkit/goat-kb",
+      "icon": "https://raw.githubusercontent.com/goatkit/goat-kb/main/icon.svg",
       "category": "business",
       "tags": ["knowledge-base", "faq", "articles", "customer-portal"],
       "latest_version": "0.1.0",
