@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-03T12:05:11Z",
+  "updated_at": "2026-10-04T06:32:08Z",
   "plugins": [
     {
       "name": "goat-kb",
@@ -17,13 +17,18 @@
         "articles",
         "customer-portal"
       ],
-      "latest_version": "0.1.1",
-      "min_host_version": "0.8.0",
+      "latest_version": "0.2.0",
+      "min_host_version": "0.10.0",
       "runtime": "grpc",
       "verified": true,
       "dependencies": [],
       "public_key": "fa81e60073ee6f3e5825c575c18a7c2556f2abf2640dcf0e296a98fe4eb60fa6",
       "versions": [
+        {
+          "version": "0.2.0",
+          "min_host_version": "0.10.0",
+          "released_at": "2026-10-04T06:31:23Z"
+        },
         {
           "version": "0.1.1",
           "min_host_version": "0.8.0",
@@ -34,6 +39,35 @@
           "min_host_version": "0.8.0",
           "released_at": "2026-07-06T15:11:56Z"
         }
+      ]
+    },
+    {
+      "name": "goat-kanban",
+      "description": "Drag-and-drop Kanban boards over ticket states, with a ticket palette and queue-scoped access",
+      "author": "GoatKit Team",
+      "licence": "Apache-2.0",
+      "homepage": "https://github.com/goatkit/goat-kanban",
+      "repo": "goatkit/goat-kanban",
+      "icon": "https://raw.githubusercontent.com/goatkit/goat-kanban/main/icon.svg",
+      "category": "business",
+      "latest_version": "0.1.0",
+      "min_host_version": "0.10.0",
+      "runtime": "grpc",
+      "verified": true,
+      "dependencies": [],
+      "public_key": "fa81e60073ee6f3e5825c575c18a7c2556f2abf2640dcf0e296a98fe4eb60fa6",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "min_host_version": "0.10.0",
+          "released_at": "2026-10-04T06:31:30Z"
+        }
+      ],
+      "tags": [
+        "kanban",
+        "board",
+        "tickets",
+        "workflow"
       ]
     }
   ]
