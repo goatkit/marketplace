@@ -19,15 +19,12 @@ gk update
 
 ### Signature Verification
 
-Plugins can be signed with ed25519 keys. When a plugin entry includes a `public_key` field, `gk install` verifies the download automatically — no user configuration needed.
+GoatFlow runs only signed plugin code (from the release after 0.10.0). Each package needs two signatures from a trusted publisher:
 
-To enforce signatures for all installs (reject unsigned plugins):
+- the package itself (`<name>.zip.sig`, published next to the ZIP), checked before anything is installed;
+- the plugin binary (gRPC) or module (WASM), as `<binary>.sig` inside the ZIP, checked at install and every time the plugin starts.
 
-```bash
-export GOATFLOW_REQUIRE_SIGNATURES=1
-```
-
-To trust additional keys beyond those in the index (e.g. for private plugins):
+The GoatKit publisher key is built into GoatFlow, so first-party plugins install with no configuration. For a plugin from another publisher, an administrator adds that publisher's public key first. The `public_key` in the index entry is shown in the error message, but is not trusted on its own:
 
 ```bash
 # Hex public key, comma-separated for multiple
@@ -36,6 +33,8 @@ export GOATFLOW_TRUSTED_KEYS=<64-char-hex-public-key>
 # Or load from a file (one per line, # for comments)
 export GOATFLOW_TRUSTED_KEYS_FILE=/etc/goatflow/trusted_keys.txt
 ```
+
+Only on a development system that runs plugins built from source, `GOATFLOW_REQUIRE_SIGNATURES=0` loads unsigned plugins.
 
 ### Custom Marketplace
 
@@ -60,36 +59,43 @@ For **gRPC** plugins (compiled binary), use your project's build pipeline. The Z
 - `plugin.yaml` — the plugin manifest
 - The compiled binary (name must match the `binary` field in `plugin.yaml`)
 
-### 2. Generate a Signing Key (optional but recommended)
+### 2. Generate a Signing Key
 
 ```bash
 gk keys generate
 # Private key: <hex>   — keep this secret, use it to sign releases
-# Public key:  <hex>   — publish this so users can verify your plugins
+# Public key:  <hex>   — put this in your marketplace entry and README
 ```
 
-### 3. Sign the Package
+Signing is required: GoatFlow refuses unsigned plugins.
+
+### 3. Sign the Binary, Then the Package
+
+Sign the binary (gRPC) or module (WASM) **before** packaging, so its `.sig` goes into the ZIP next to it. Then sign the ZIP:
 
 ```bash
-gk sign dist/my-plugin-1.0.0.zip --key <hex-private-key>
-# → dist/my-plugin-1.0.0.zip.sig
+gk sign my-plugin --key <hex-private-key>        # → my-plugin.sig (my-plugin.wasm.sig for WASM)
+# package plugin.yaml, my-plugin and my-plugin.sig into my-plugin.zip
+gk sign my-plugin.zip --key <hex-private-key>    # → my-plugin.zip.sig
 ```
+
+Template and theme plugins have no binary; only the ZIP is signed.
 
 ### 4. Create a GitHub Release
 
 ```bash
 gh release create v1.0.0 \
-  dist/my-plugin-1.0.0.zip \
-  dist/my-plugin-1.0.0.zip.sig \
+  my-plugin.zip \
+  my-plugin.zip.sig \
   --title "my-plugin v1.0.0" \
   --notes "Initial release"
 ```
 
-The release tag must match the version in `plugin.yaml`. Asset naming convention: `{plugin-name}.zip` (matching the `name` field in `plugin.yaml`).
+The release tag must match the version in `plugin.yaml`. Asset naming convention: `{plugin-name}.zip` and `{plugin-name}.zip.sig` (matching the `name` field in `plugin.yaml`).
 
 #### GitHub Actions CI
 
-Automate the build-sign-release pipeline on tag push:
+Automate the build-sign-release pipeline on tag push (a gRPC plugin; for WASM, sign the `.wasm` module instead):
 
 ```yaml
 name: Release Plugin
@@ -101,20 +107,32 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
-          go-version: '1.25.10'
-      - run: gk build
-      - run: gk sign dist/*.zip --key ${{ secrets.SIGNING_KEY }}
+          repository: goatkit/goatflow
+          ref: v0.11.0          # pin to the GoatFlow release you build against
+          path: goatflow
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.10'
+      - name: Build, sign and package
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          (cd goatflow && go build -o ../gk ./cmd/gk)
+          go build -o my-plugin .
+          ./gk sign my-plugin --key "$SIGNING_KEY"
+          zip my-plugin.zip plugin.yaml my-plugin my-plugin.sig
+          ./gk sign my-plugin.zip --key "$SIGNING_KEY"
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/*.zip
-            dist/*.zip.sig
+            my-plugin.zip
+            my-plugin.zip.sig
 ```
 
-Store your private signing key as a repository secret named `SIGNING_KEY`.
+Store your private signing key as a repository secret named `SIGNING_KEY`. Never commit it.
 
 ### 5. Submit to the Marketplace
 
@@ -131,15 +149,15 @@ Open a pull request adding your plugin to [`marketplace.json`](marketplace.json)
   "category": "utility",
   "tags": ["automation", "workflow"],
   "latest_version": "1.0.0",
-  "min_host_version": "0.8.0",
+  "min_host_version": "0.11.0",
   "runtime": "wasm",
   "verified": true,
   "dependencies": [],
-  "public_key": "<your-64-char-hex-public-key-from-make-keygen>"
+  "public_key": "<your-64-char-hex-public-key-from-gk-keys-generate>"
 }
 ```
 
-Set `"verified": true` and include `"public_key"` when you have signed your release. Users with `GOATFLOW_REQUIRE_SIGNATURES=1` will reject entries without a valid key.
+Set `"verified": true` and include `"public_key"`. GoatFlow does not trust that key on its own: it names it when it refuses your plugin, so an administrator can check it against the key you publish (in your README, say) and add it to `GOATFLOW_TRUSTED_KEYS`. Without that, installs of your plugin are refused.
 
 ## Index Schema
 
@@ -158,7 +176,7 @@ Set `"verified": true` and include `"public_key"` when you have signed your rele
 | `runtime` | string | yes | One of: `wasm`, `grpc`, `template`, `theme` |
 | `verified` | bool | yes | Whether the release is ed25519-signed |
 | `dependencies` | string[] | no | Plugin names this depends on (installed first) |
-| `public_key` | string | no | Ed25519 public key (hex, 64 chars) for automatic signature verification |
+| `public_key` | string | no | Ed25519 public key (hex, 64 chars) of the publisher; shown when an install is refused, so an administrator can choose to trust it (not trusted by itself) |
 
 ### Categories
 
